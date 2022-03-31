@@ -1,7 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 
-const { v4: uuidv4, validate } = require('uuid');
+const { v4: uuidv4 } = require('uuid');
+const { version: uuidVersion } = require('uuid') ;
+const { validate: uuidValidate } = require('uuid') ;
 
 const app = express();
 app.use(express.json());
@@ -9,20 +11,84 @@ app.use(cors());
 
 const users = [];
 
+function uuidValidateV4(uuid) {
+  return uuidValidate(uuid) && uuidVersion(uuid) === 4;
+}
+
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+
+  const user = users.find(u => u.username === username);
+
+  if (!user) {
+    return response.status(404).json({ error: "Customer not found"})
+  }
+
+  request.user = user;
+
+  next()
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request
+
+  if (user.pro === false) {
+    if (user.todos.length >= 10 ) {
+      return response.status(403).json({ error: "10 cadastros grátis já utilizado, compre o pro para mais cadastros"})
+    } else {
+      next()
+    }
+  }
+
+  next()
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+  const { id } = request.params;
+
+  const user = users.find(u => u.username === username);
+
+  if (!user) {
+    return response.status(404).json({ error: "Customer not found"})
+  }
+
+  const validateIsTrue = uuidValidateV4(id)
+
+  if (!validateIsTrue) {
+    return response.status(400)
+  }
+
+  const todo = user.todos.find(td => td.id === id)
+
+  if (!todo) {
+    return response.status(404)
+  }
+
+  request.user = user;
+  request.todo = todo;
+
+  next()
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } =  request.params;
+
+  const validateIsTrue = uuidValidateV4(id)
+
+  if (!validateIsTrue) {
+    return response.status(400)
+  }
+  
+  const user = users.find(u => u.id === id);
+
+  if (!user) {
+    return response.status(404).json({ error: "Customer not found"})
+  }
+
+  request.user = user;
+
+  next()
 }
 
 app.post('/users', (request, response) => {
